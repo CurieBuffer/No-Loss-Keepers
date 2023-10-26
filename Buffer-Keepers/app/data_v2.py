@@ -43,7 +43,7 @@ def execute_graph_query(json_data, endpoint):
         if "data" not in response_json:
             print(json_data)
             print(endpoint)
-            logger.info(response_json)
+            # logger.info(response_json)
             raise Exception("Error fetching from theGraph")
         return response_json  # List[{optionId, contractAddress, expirationTime}]
     except KeyError as e:
@@ -153,7 +153,7 @@ def get_option_to_execute(environment):
             userOptionDatas(
                 orderBy: creationTime
                 orderDirection: asc
-                where: {{state_in: [1], expirationTime_lt: $currentTimestamp, creationTime_gte: $minTimestamp, queueID_not: null}}
+                where: {{state_in: [1], expirationTime_lt: $currentTimestamp, queueID_not: null}}
                 first: {limit}
             ) {{
                 optionID
@@ -190,6 +190,8 @@ def get_option_to_execute(environment):
                 "contractAddress": Web3.toChecksumAddress(
                     x["optionContract"]["address"]
                 ),
+                "optionID": int(x["optionID"]),
+                "expirationTime": int(x["expirationTime"]),
             }
         )
     )
@@ -231,7 +233,6 @@ def get_option_to_open(environment):
     except Exception as e:
         # logger.info(f"Error fetching from theGraph")
         pass
-
     return queuedOptionDatas
 
 

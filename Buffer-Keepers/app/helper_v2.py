@@ -31,52 +31,8 @@ MAX_BATCH_SIZE = 100
 from pipe import Pipe
 
 
-@Pipe
-def batch(iterable, size):
-    current_batch = []
-    counter = 0
-    for item in iterable:
-        current_batch.append(item)
-        counter += 1
-        if counter == size:
-            yield current_batch
-            current_batch = []
-            counter = 0
-    if current_batch:
-        yield current_batch
-
-
 def _(x):
     return json.dumps(x, indent=4, sort_keys=True)
-
-
-class InvalidIdsCache(object):
-    def __init__(self, router) -> None:
-        self.wrong_id_cache_key = f"wrong_ids-{router}"
-        self.data = cache.get(self.wrong_id_cache_key)
-        if not self.data:
-            self.data = {"ids": []}
-        else:
-            self.data = json.loads(self.data)
-
-        logger.info(f"invalid_option_ids: {self.data}")
-
-    def update(self, new_ids):
-        self.data["ids"] += new_ids
-        cache.set(self.wrong_id_cache_key, json.dumps(self.data))
-
-    @property
-    def ids(self):
-        return self.data["ids"]
-
-
-@timing
-def update_db(url, payload):
-    logger.info(f"update_db: {url} {payload}")
-    reqUrl = f"{config.BASE_URL}/{url}"
-    r = requests.post(url=reqUrl, json=payload)
-    r.raise_for_status()
-    logger.info(f"update_db: {r.json()}")
 
 
 def get_target_contract_mapping(d, environment):
@@ -148,7 +104,7 @@ def open(environment):
                 ),
             )
         )
-        | select(lambda x: (x[0], x[1][6], x[1][10]))
+        | select(lambda x: (x[0], x[1][6], x[1][9]))
     )
 
     if not unresolved_trades:
@@ -213,7 +169,7 @@ def open(environment):
 
         try:
             events = contract.write_txn(
-                router_contract, "openTrades", unresolved_trades, environment
+                router_contract, "resolveQueuedTrades", unresolved_trades, environment
             )
             logger.info(f"events: {(events)}")
         except Exception as e:
@@ -327,6 +283,7 @@ def unlock_options(environment):
             events = contract.write_txn(
                 router_contract, "unlockOptions", unlock_payload, environment
             )
+            logger.info(f"events: {(events)}")
         except Exception as e:
             if "nonce too low" in str(e):
                 logger.info(e)
