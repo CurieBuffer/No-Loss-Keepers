@@ -4,7 +4,7 @@ ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
 CHAIN_ID = {"arb-sandbox": "421613", "arb-testnet": "421613", "arb-mainnet": "42161"}
 ROUTER = {
-    "arb-sandbox": "0x06eFE941603876Cc3Ff0fa980BACE6DdDE9700B6",
+    "arb-sandbox": "0x0eD7264c2607535B9293d35cbfb17aaB7Db6E29a",
     # "arb-testnet": "0x2430E4aD865423Ed994daD297D66b77F3ec2B008",
     # "arb-mainnet": "0x075EEA84D1122A0c2F2A6C9265F8126F64087d44",
     # "polygon-testnet": "0x3E8d70286567bf962261a81Da5DBDe6cBbc444C4",
