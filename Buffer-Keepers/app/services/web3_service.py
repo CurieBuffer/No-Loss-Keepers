@@ -156,7 +156,6 @@ class Contract(object):
         )
 
     def publish_txn(self, transfer_txn, value, private_key, gas_price=None):
-
         nonce = self._get_nonce(private_key=private_key)
         block = self.web3.eth.get_block("latest")
         base_fee = block["baseFeePerGas"]
@@ -173,8 +172,8 @@ class Contract(object):
                 # "gasPrice": self.get_gas_price(),
                 "nonce": nonce,
                 "value": value,
-                "maxFeePerGas": base_fee * 2,
-                "maxPriorityFeePerGas": gas_price if gas_price else default_gas_price,
+                # "maxFeePerGas": base_fee * 2,
+                # "maxPriorityFeePerGas": gas_price if gas_price else default_gas_price,
             }
         )
         gas = self.web3.eth.estimate_gas(transfer_txn) * 1.5
@@ -356,7 +355,6 @@ class Contract(object):
 
 
 def get_contract_instance(**kwargs):
-
     contract_instance = Contract(
         contract_address=kwargs["contract_address"],
         environment=kwargs["environment"],

@@ -1,3 +1,4 @@
+import base64
 import json
 import logging
 import os
@@ -9,7 +10,9 @@ import requests
 from cache import cache
 from eth_account import Account
 from eth_account.messages import encode_defunct
+from multicall import cached_multicall
 from pipe import chain, dedup, select, sort, where
+from pyth import FEED_ID_PYTH_SYMBOL_MAPPING
 from requests import Session
 from retry import retry as retry_decorator
 from retry_requests import TSession, retry
@@ -234,6 +237,45 @@ def get_option_to_open(environment):
         # logger.info(f"Error fetching from theGraph")
         pass
     return queuedOptionDatas
+
+
+def get_vaa_for_a_specific_time(asset, timestamp, environment):
+    params = {"id": FEED_ID_PYTH_SYMBOL_MAPPING[asset], "publish_time": timestamp}
+
+    # endpoint = config.PYTH_ENDPOINT + "/api/get_vaa"
+
+    # response = retry(TSession(timeout=2), retries=2, backoff_factor=0.2).get(
+    #     endpoint,
+    #     params=params,
+    # )
+    # return [base64.b64decode(response.json()["vaa"]).hex()]
+    if environment == "arb-sandbox":
+        pyth_abi = "./abis/Pyth.json"
+
+        response = retry(TSession(timeout=2), retries=2, backoff_factor=0.2).get(
+            config.PYTH_ENDPOINT + "/api/get_price_feed",
+            params=params,
+        )
+        response = response.json()
+        d = cached_multicall(
+            [
+                [
+                    config.PYTH[environment],
+                    pyth_abi,
+                    "createPriceFeedUpdateData",
+                    response["id"],
+                    int(response["price"]["price"]),
+                    int(response["price"]["conf"]),
+                    int(response["price"]["expo"]),
+                    int(response["ema_price"]["price"]),
+                    int(response["ema_price"]["conf"]),
+                    int(response["price"]["publish_time"]),
+                ]
+            ],
+            environment=environment,
+        )
+
+        return d
 
 
 if __name__ == "__main__":

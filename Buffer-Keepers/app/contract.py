@@ -32,7 +32,6 @@ def register(
     environment,
     abi_path,
 ):
-
     contract_instance = get_contract_instance(
         contract_address=get_checksum_address(contract_address),
         environment=environment,
@@ -44,8 +43,8 @@ def register(
     ] = contract_instance
 
 
-def write_txn(contract_instance, function_name, args, env):
-    txn = contract_instance.write(function_name, args)
+def write_txn(contract_instance, function_name, env, *args, value=0):
+    txn = contract_instance.write(function_name, *args, value=value)
     return decode_txn(txn, env)
 
 

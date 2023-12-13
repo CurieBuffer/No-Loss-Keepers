@@ -13,11 +13,13 @@ from data_v2 import (
     get_asset_pair,
     get_option_to_execute,
     get_option_to_open,
+    get_vaa_for_a_specific_time,
 )
 from eth_account import Account
 from eth_account.messages import encode_defunct
 from multicall import cached_multicall
 from pipe import chain, dedup, select, sort, where
+from pyth import FEED_ID_PYTH_SYMBOL_MAPPING
 from timing import timing
 from utility import get_account
 
@@ -27,6 +29,7 @@ logging.basicConfig(level=logging.INFO)
 
 keeper_account = os.environ["KEEPER_ACCOUNT_PK"]
 MAX_BATCH_SIZE = 100
+pyth_abi = "./abis/Pyth.json"
 
 from pipe import Pipe
 
@@ -67,6 +70,38 @@ def is_strike_valid(slippage, current_price, strike):
         return False
 
 
+def get_price_data(asset_time_mapping, environment):
+    price_update_data = dict(
+        asset_time_mapping
+        | select(
+            lambda x: (
+                f"{x[0]}-{x[1]}",
+                get_vaa_for_a_specific_time(x[0], int(x[1]), environment),
+            )
+        )
+    )  # List[(assetPair, timestamp)]
+
+    total_fee = sum(
+        list(
+            cached_multicall(
+                list(
+                    asset_time_mapping
+                    | select(
+                        lambda x: (
+                            config.PYTH[environment],
+                            pyth_abi,
+                            "getUpdateFee",
+                            price_update_data[f"{x[0]}-{x[1]}"],
+                        )
+                    )
+                ),
+                environment=environment,
+            )
+        )
+    )
+    return price_update_data, total_fee
+
+
 @timing
 def open(environment):
     router_abi = "./abis/Router.json"
@@ -104,7 +139,15 @@ def open(environment):
                 ),
             )
         )
-        | select(lambda x: (x[0], x[1][6], x[1][9]))
+        | where(lambda x: x[1][10])
+        | select(
+            lambda x: {
+                "queueId": x[0],
+                "contractAddress": x[1][6],
+                "isAbove": x[1][5],
+                "queueTimestamp": x[1][9],
+            }
+        )
     )
 
     if not unresolved_trades:
@@ -112,65 +155,47 @@ def open(environment):
 
     logger.info(f"unresolved_trades: {_(unresolved_trades)}")
 
-    target_option_contracts_mapping = dict(
-        unresolved_trades
-        | select(lambda x: x[1])
-        | dedup
-        | select(
-            lambda options_contract: (
-                options_contract,
-                get_asset_pair(options_contract, environment).replace("-", ""),
-            )
-        )
+    target_option_contracts_mapping = get_target_contract_mapping(
+        unresolved_trades, environment
     )
 
-    prices_to_fetch = list(
+    _asset = lambda x: target_option_contracts_mapping[x["contractAddress"]]
+    asset_time_mapping = list(
         unresolved_trades
         | select(
-            lambda x: f"{target_option_contracts_mapping[x[1]]}%{x[2]}",
+            lambda x: f"{target_option_contracts_mapping[x['contractAddress']]}%{x['queueTimestamp']}",
         )
-        | dedup
         | select(lambda x: x.split("%"))
-        | select(
-            lambda x: {
-                "pair": x[0],
-                "timestamp": int(x[1]),
-            }
-        )
-        | sort(key=lambda x: x["timestamp"], reverse=False)
-    )  # List[(assetPair, timestamp)]
-
-    logger.debug(f"prices_to_fetch: {_(prices_to_fetch)}")
-    fetched_prices_mapping = fetch_prices(prices_to_fetch)
-    logger.debug(f"fetched_prices_mapping: {_(fetched_prices_mapping)}")
-
-    _price = lambda x: fetched_prices_mapping.get(
-        f"{target_option_contracts_mapping[x[1]]}-{x[2]}",
-        {},
     )
+    logger.info(f"asset_time_mapping: {(asset_time_mapping)}")
+
+    price_update_data, total_fee = get_price_data(asset_time_mapping, environment)
 
     unresolved_trades = list(
         unresolved_trades
-        | where(lambda x: _price(x).get("price"))
         | select(
             lambda x: (
-                x[0],  # queueId
-                x[2],  # timestamp
-                _price(x)["price"],  # price
-                _price(x)["signature"],  # signature
+                int(x["queueId"]),  # queueId
+                price_update_data[f"{_asset(x)}-{x['queueTimestamp']}"],
+                [FEED_ID_PYTH_SYMBOL_MAPPING[_asset(x)]],
             )
         )
         | dedup(key=lambda x: x[0])
     )  # List[(queueId, timestamp, price, signature)]
 
     if unresolved_trades:
-        logger.info(f"resolve payload: {_(unresolved_trades)}")
+        logger.info(f"resolve payload: {(unresolved_trades)}")
         router_contract = contract.ContractRegistryMap[environment][ROUTER[environment]]
 
         try:
             events = contract.write_txn(
-                router_contract, "resolveQueuedTrades", unresolved_trades, environment
+                router_contract,
+                "resolveQueuedTrades",
+                environment,
+                unresolved_trades,
+                value=total_fee,
             )
+
             logger.info(f"events: {(events)}")
         except Exception as e:
             if "nonce too low" in str(e):
@@ -236,40 +261,29 @@ def unlock_options(environment):
         return
 
     logger.info(f"expired_options: {_(expired_options)}")
-    # Fetch the prices for the valid ones
-    prices_to_fetch = list(
+
+    target_option_contracts_mapping = get_target_contract_mapping(
+        expired_options, environment
+    )
+    asset_time_mapping = list(
         expired_options
         | select(
-            lambda x: f'{target_option_contracts_mapping[x["contractAddress"]]}%{x["expirationTime"]}',
+            lambda x: f"{target_option_contracts_mapping[x['contractAddress']]}%{x['expirationTime']}",
         )
-        | dedup
         | select(lambda x: x.split("%"))
-        | select(
-            lambda x: {
-                "pair": x[0],
-                "timestamp": int(x[1]),
-            }
-        )
-    )  # List[(assetPair, timestamp)]
-
-    logger.debug(f"prices_to_fetch: {_(prices_to_fetch)}")
-    fetched_prices_mapping = fetch_prices(prices_to_fetch)
-
-    _price = lambda x: fetched_prices_mapping.get(
-        f"{target_option_contracts_mapping[x['contractAddress']]}-{x['expirationTime']}",
-        {},
     )
+
+    price_update_data, total_fee = get_price_data(asset_time_mapping, environment)
+    _asset = lambda x: target_option_contracts_mapping[x["contractAddress"]]
 
     unlock_payload = list(
         expired_options
-        | where(lambda x: _price(x).get("price"))
         | select(
             lambda x: (
                 x["optionID"],
                 x["contractAddress"],
-                x["expirationTime"],
-                _price(x)["price"],  # price
-                _price(x)["signature"],  # signature
+                price_update_data[f'{_asset(x)}-{x["expirationTime"]}'],
+                [FEED_ID_PYTH_SYMBOL_MAPPING[_asset(x)]],
             )
         )
         | dedup(key=lambda x: f"{x[0]}-{x[1]}")
@@ -281,7 +295,11 @@ def unlock_options(environment):
 
         try:
             events = contract.write_txn(
-                router_contract, "unlockOptions", unlock_payload, environment
+                router_contract,
+                "executeOptions",
+                environment,
+                unlock_payload,
+                value=total_fee,
             )
             logger.info(f"events: {(events)}")
         except Exception as e:

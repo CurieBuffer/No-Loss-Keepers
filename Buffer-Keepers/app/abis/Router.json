@@ -3,12 +3,12 @@
     "inputs": [
       {
         "internalType": "address",
-        "name": "_publisher",
+        "name": "_tournamentManager",
         "type": "address"
       },
       {
-        "internalType": "address",
-        "name": "_tournamentManager",
+        "internalType": "contract IPyth",
+        "name": "_pyth",
         "type": "address"
       }
     ],
@@ -434,6 +434,19 @@
   },
   {
     "inputs": [],
+    "name": "maximumPriceDelayForResolving",
+    "outputs": [
+      {
+        "internalType": "uint64",
+        "name": "",
+        "type": "uint64"
+      }
+    ],
+    "stateMutability": "view",
+    "type": "function"
+  },
+  {
+    "inputs": [],
     "name": "nextQueueId",
     "outputs": [
       {
@@ -525,10 +538,10 @@
   },
   {
     "inputs": [],
-    "name": "publisher",
+    "name": "pyth",
     "outputs": [
       {
-        "internalType": "address",
+        "internalType": "contract IPyth",
         "name": "",
         "type": "address"
       }
@@ -643,19 +656,14 @@
             "type": "uint256"
           },
           {
-            "internalType": "uint256",
-            "name": "timestamp",
-            "type": "uint256"
+            "internalType": "bytes[]",
+            "name": "priceUpdateData",
+            "type": "bytes[]"
           },
           {
-            "internalType": "uint256",
-            "name": "price",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes",
-            "name": "signature",
-            "type": "bytes"
+            "internalType": "bytes32[]",
+            "name": "priceIds",
+            "type": "bytes32[]"
           }
         ],
         "internalType": "struct IBufferRouter.OpenTradeParams[]",
@@ -665,7 +673,7 @@
     ],
     "name": "resolveQueuedTrades",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
@@ -776,19 +784,14 @@
             "type": "address"
           },
           {
-            "internalType": "uint256",
-            "name": "expiryTimestamp",
-            "type": "uint256"
+            "internalType": "bytes[]",
+            "name": "priceUpdateData",
+            "type": "bytes[]"
           },
           {
-            "internalType": "uint256",
-            "name": "priceAtExpiry",
-            "type": "uint256"
-          },
-          {
-            "internalType": "bytes",
-            "name": "signature",
-            "type": "bytes"
+            "internalType": "bytes32[]",
+            "name": "priceIds",
+            "type": "bytes32[]"
           }
         ],
         "internalType": "struct IBufferRouter.CloseTradeParams[]",
@@ -798,7 +801,7 @@
     ],
     "name": "unlockOptions",
     "outputs": [],
-    "stateMutability": "nonpayable",
+    "stateMutability": "payable",
     "type": "function"
   },
   {
