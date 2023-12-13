@@ -290,13 +290,13 @@ def unlock_options(environment):
     )
 
     if unlock_payload:
-        logger.info(f"unlock_payload: {_(unlock_payload)}")
+        logger.info(f"unlock_payload: {(unlock_payload)}")
         router_contract = contract.ContractRegistryMap[environment][ROUTER[environment]]
 
         try:
             events = contract.write_txn(
                 router_contract,
-                "executeOptions",
+                "unlockOptions",
                 environment,
                 unlock_payload,
                 value=total_fee,
