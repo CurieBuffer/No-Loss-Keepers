@@ -253,7 +253,7 @@ def get_vaa_for_a_specific_time(asset, timestamp, environment):
         pyth_abi = "./abis/Pyth.json"
 
         response = retry(TSession(timeout=2), retries=2, backoff_factor=0.2).get(
-            config.PYTH_ENDPOINT + "/api/get_price_feed",
+            os.environ.get("PYTH_ENDPOINT", "") + "/api/get_price_feed",
             params=params,
         )
         response = response.json()
