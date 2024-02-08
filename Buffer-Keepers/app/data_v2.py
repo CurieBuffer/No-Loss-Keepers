@@ -152,11 +152,11 @@ def get_option_to_execute(environment):
 
     json_data = {
         "query": f"""
-        query UserOptionHistory($currentTimestamp: BigInt = {int(time.time())}, $minTimestamp: BigInt = {min_timestamp}) {{
+        query UserOptionHistory {{
             userOptionDatas(
-                orderBy: creationTime
-                orderDirection: asc
-                where: {{state_in: [1], expirationTime_lt: $currentTimestamp, queueID_not: null}}
+                orderBy: "creationTime"
+                orderDirection: "asc"
+                where: {{state_in: [1], expirationTime_lt: "{str(int(time.time()))}", queueID_not: null}}
                 first: {limit}
             ) {{
                 optionID
@@ -208,10 +208,10 @@ def get_option_to_open(environment):
     limit = 1000
     json_data = {
         "query": f"""
-        query MyQuery($currentTimestamp: BigInt = {int(time.time())}) {{
+        query MyQuery {{
             queuedOptionDatas(
-                orderBy: queueID
-                orderDirection: asc
+                orderBy: "queueID"
+                orderDirection: "asc"
                 where: {{state_in: [4], queueID_not: null}}
                 first: {limit}
             ) {{
