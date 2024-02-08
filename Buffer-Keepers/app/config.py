@@ -2,9 +2,15 @@ import os
 
 ZERO_ADDRESS = "0x0000000000000000000000000000000000000000"
 
-CHAIN_ID = {"arb-sandbox": "421613", "arb-testnet": "421613", "arb-mainnet": "42161"}
+CHAIN_ID = {
+    "arb-sandbox": "421613",
+    "arb-testnet": "421613",
+    "arb-mainnet": "42161",
+    "blast-testnet": "168587773",
+}
 ROUTER = {
     "arb-sandbox": "0xF7760095561259e9c52A62A7743d3451d010E97b",
+    "blast-testnet": "0x537fe657b5F6Db1630901d09473Bc6112d4f4B27",
     # "arb-testnet": "0x2430E4aD865423Ed994daD297D66b77F3ec2B008",
     # "arb-mainnet": "0x075EEA84D1122A0c2F2A6C9265F8126F64087d44",
     # "polygon-testnet": "0x3E8d70286567bf962261a81Da5DBDe6cBbc444C4",
@@ -12,6 +18,7 @@ ROUTER = {
 }
 PYTH = {
     "arb-sandbox": "0x24f72ee89Ad0fd5c44913DF378d2cF4e40107582",
+    "blast-testnet": "0xA2aa501b19aff244D90cc15a4Cf739D2725B5729",
 }
 PYTH_ENDPOINT = "https://hermes.pyth.network"
 
@@ -22,6 +29,7 @@ MULTICALL = {
     "arb-mainnet": "0x842eC2c7D803033Edf55E478F461FC547Bc54EB2",
     "polygon-testnet": "0xF6b05f349E64CB2202a6C7D53daaDccC48f82C25",
     "polygon-mainnet": "0xc8E51042792d7405184DfCa245F2d27B94D013b6",
+    "blast-testnet": "0x8823C4db31c9e75964c06ee2838E1763a0Cf5cd2",
 }
 
 
@@ -29,6 +37,7 @@ BASE_URL = os.environ.get("BASE_URL")
 
 GRAPH_ENDPOINT = {
     "arb-sandbox": "https://subgraph.satsuma-prod.com/e66b06ce96d2/bufferfinance/no-loss-arbitrum-testnet/api",
+    "blast-testnet": "https://no-loss-production.up.railway.app/",
     # "arb-testnet": "https://subgraph.satsuma-prod.com/e66b06ce96d2/bufferfinance/arbitrum-testnet/api",
     # "arb-mainnet": "https://subgraph.satsuma-prod.com/e66b06ce96d2/bufferfinance/v2.5-arbitrum-mainnet/api",
     # "polygon-sandbox": "https://subgraph.satsuma-prod.com/e66b06ce96d2/bufferfinance/polygon-testnet/api",
@@ -36,16 +45,19 @@ GRAPH_ENDPOINT = {
     # "polygon-testnet": "https://subgraph.satsuma-prod.com/e66b06ce96d2/bufferfinance/polygon-testnet/api",
 }
 
+
 GAS_PRICE = {
     "arb-sandbox": 0.1e9,
     "arb-testnet": 0.1e9,
     "arb-mainnet": 0.1e9,
+    "blast-testnet": 0.1e9,
     "polygon-testnet": 0.1e9,
     "polygon-mainnet": 200e9,
 }
 
 GAS_LIMIT_PER_TXN = {
     "arb-sandbox": 10_000_000,
+    "blast-testnet": 10_000_000,
     "arb-testnet": 10_000_000,
     "arb-mainnet": 15_000_000,
     "polygon-testnet": 5_000_000,
