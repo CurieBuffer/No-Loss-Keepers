@@ -80,24 +80,33 @@ def get_price_data(asset_time_mapping, environment):
             )
         )
     )  # List[(assetPair, timestamp)]
+    pyth_contract = contract.ContractRegistryMap[environment][config.PYTH[environment]]
 
     total_fee = sum(
         list(
-            cached_multicall(
-                list(
-                    asset_time_mapping
-                    | select(
-                        lambda x: (
-                            config.PYTH[environment],
-                            pyth_abi,
-                            "getUpdateFee",
-                            price_update_data[f"{x[0]}-{x[1]}"],
-                        )
-                    )
-                ),
-                environment=environment,
+            asset_time_mapping
+            | select(
+                lambda x: pyth_contract.read(
+                    "getUpdateFee", price_update_data[f"{x[0]}-{x[1]}"]
+                )
             )
         )
+        # list(
+        #     cached_multicall(
+        #         list(
+        #             asset_time_mapping
+        #             | select(
+        #                 lambda x: (
+        #                     config.PYTH[environment],
+        #                     pyth_abi,
+        #                     "getUpdateFee",
+        #                     price_update_data[f"{x[0]}-{x[1]}"],
+        #                 )
+        #             )
+        #         ),
+        #         environment=environment,
+        #     )
+        # )
     )
     return price_update_data, total_fee
 
@@ -117,26 +126,31 @@ def open(environment):
         logger.debug(f"Queue ids from theGraph: {_(queue_ids)}")
 
     unresolved_trades = []
+    router_contract = contract.ContractRegistryMap[environment][ROUTER[environment]]
 
     queue_ids = queue_ids[:MAX_BATCH_SIZE]
     unresolved_trades = list(
         list(
             zip(
                 queue_ids,
-                cached_multicall(
-                    list(
-                        queue_ids
-                        | select(
-                            lambda x: (
-                                ROUTER[environment],
-                                router_abi,
-                                "queuedTrades",
-                                x,
-                            )
-                        )
-                    ),
-                    environment=environment,
+                list(
+                    queue_ids
+                    | select(lambda x: router_contract.read("queuedTrades", x))
                 ),
+                # cached_multicall(
+                #     list(
+                #         queue_ids
+                #         | select(
+                #             lambda x: (
+                #                 ROUTER[environment],
+                #                 router_abi,
+                #                 "queuedTrades",
+                #                 x,
+                #             )
+                #         )
+                #     ),
+                #     environment=environment,
+                # ),
             )
         )
         | where(lambda x: x[1][10])
@@ -185,7 +199,6 @@ def open(environment):
 
     if unresolved_trades:
         logger.info(f"resolve payload: {(unresolved_trades)}")
-        router_contract = contract.ContractRegistryMap[environment][ROUTER[environment]]
 
         try:
             events = contract.write_txn(
@@ -237,20 +250,32 @@ def unlock_options(environment):
         list(
             zip(
                 expired_options,
-                cached_multicall(
-                    list(
-                        expired_options
-                        | select(
-                            lambda x: (
-                                x["contractAddress"],
-                                options_abi,
-                                "options",
-                                x["optionID"],
-                            )
-                        )
-                    ),
-                    environment=environment,
+                list(
+                    expired_options
+                    | select(
+                        lambda x: contract.get_contract_instance(
+                            contract_address=contract.get_checksum_address(
+                                x["contractAddress"]
+                            ),
+                            environment=environment,
+                            abi_path="./abis/BufferOptions.json",
+                        ).read("options", x["optionID"])
+                    )
                 ),
+                # cached_multicall(
+                #     list(
+                #         expired_options
+                #         | select(
+                #             lambda x: (
+                #                 x["contractAddress"],
+                #                 options_abi,
+                #                 "options",
+                #                 x["optionID"],
+                #             )
+                #         )
+                #     ),
+                #     environment=environment,
+                # ),
             )
         )
         | where(lambda x: x[1][0] == 1)
