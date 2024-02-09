@@ -242,40 +242,13 @@ def get_option_to_open(environment):
 def get_vaa_for_a_specific_time(asset, timestamp, environment):
     params = {"id": FEED_ID_PYTH_SYMBOL_MAPPING[asset], "publish_time": timestamp}
 
-    # endpoint = config.PYTH_ENDPOINT + "/api/get_vaa"
-
-    # response = retry(TSession(timeout=2), retries=2, backoff_factor=0.2).get(
-    #     endpoint,
-    #     params=params,
-    # )
-    # return [base64.b64decode(response.json()["vaa"]).hex()]
-    if environment == "arb-sandbox":
-        pyth_abi = "./abis/Pyth.json"
-
-        response = retry(TSession(timeout=2), retries=2, backoff_factor=0.2).get(
-            os.environ.get("PYTH_ENDPOINT", "") + "/api/get_price_feed",
-            params=params,
-        )
-        response = response.json()
-        d = cached_multicall(
-            [
-                [
-                    config.PYTH[environment],
-                    pyth_abi,
-                    "createPriceFeedUpdateData",
-                    response["id"],
-                    int(response["price"]["price"]),
-                    int(response["price"]["conf"]),
-                    int(response["price"]["expo"]),
-                    int(response["ema_price"]["price"]),
-                    int(response["ema_price"]["conf"]),
-                    int(response["price"]["publish_time"]),
-                ]
-            ],
-            environment=environment,
-        )
-
-        return d
+    endpoint = os.environ.get("PYTH_ENDPOINT", "") + "/api/get_vaa"
+    logger.info(f"endpoint: {endpoint}")
+    response = retry(TSession(timeout=2), retries=2, backoff_factor=0.2).get(
+        endpoint,
+        params=params,
+    )
+    return [base64.b64decode(response.json()["vaa"]).hex()]
 
 
 if __name__ == "__main__":

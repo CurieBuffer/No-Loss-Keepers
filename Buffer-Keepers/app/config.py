@@ -10,7 +10,7 @@ CHAIN_ID = {
 }
 ROUTER = {
     "arb-sandbox": "0xF7760095561259e9c52A62A7743d3451d010E97b",
-    "blast-testnet": "0x537fe657b5F6Db1630901d09473Bc6112d4f4B27",
+    "blast-testnet": "0xC42D0a6d10fd4E0085F82cAE02Bb10a2A6b9650E",
     # "arb-testnet": "0x2430E4aD865423Ed994daD297D66b77F3ec2B008",
     # "arb-mainnet": "0x075EEA84D1122A0c2F2A6C9265F8126F64087d44",
     # "polygon-testnet": "0x3E8d70286567bf962261a81Da5DBDe6cBbc444C4",
