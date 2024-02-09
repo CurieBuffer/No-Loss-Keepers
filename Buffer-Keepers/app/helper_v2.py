@@ -336,6 +336,7 @@ def unlock_options(environment):
 
 def register_all_contracts(environment):
     contract.register(ROUTER[environment], environment, "./abis/Router.json")
+    contract.register(config.PYTH[environment], environment, "./abis/Pyth.json")
     logger.info("All contracts registered")
 
 
